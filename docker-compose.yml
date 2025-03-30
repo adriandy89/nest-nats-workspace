@@ -1,0 +1,24 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: postgres_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: todos_db
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  nats:
+    image: nats:latest
+    container_name: nats_server
+    ports:
+      - '4222:4222' # Puerto estándar de cliente NATS
+      - '8222:8222' # Puerto HTTP para monitoreo (opcional)
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
