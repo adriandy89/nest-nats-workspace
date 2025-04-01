@@ -3,8 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { TodoController } from './todo.controller';
 import { TodoService } from './todo.service';
 import { NatsContext } from '@nestjs/microservices';
-import { CreateTodoDto } from '@app/dtos/create-todo.dto';
-import { UpdateTodoDto } from '@app/dtos/update-todo.dto';
+import { CreateTodoDto, UpdateTodoDto } from '@app/dtos';
 
 describe('TodoController', () => {
   let todoController: TodoController;

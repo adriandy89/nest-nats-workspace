@@ -11,7 +11,7 @@ module.exports = {
     roots: ['<rootDir>/apps/', '<rootDir>/libs/'],
     moduleNameMapper: {
         '^@app/database(|/.*)$': '<rootDir>/libs/database/src/$1',
-        '^@app/dtos/(.*)$': '<rootDir>/libs/dtos/$1',
-        '^@app/dtos$': '<rootDir>/libs/dtos',
+        '^@app/dtos/(.*)$': '<rootDir>/libs/dtos/src/$1',
+        '^@app/dtos$': '<rootDir>/libs/dtos/src',
     },
 };

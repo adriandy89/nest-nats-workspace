@@ -1,0 +1,74 @@
+services:
+  # --- Your Application Services ---
+  api-gateway:
+    # Image name will be set during build/tag in CI/CD, e.g., my-org/api-gateway:latest
+    # For local testing before CI/CD: build: { context: ., dockerfile: apps/api-gateway/Dockerfile }
+    image: nest-api-gateway:latest # Placeholder, will be built/tagged in Actions
+    container_name: nest_api_gateway
+    restart: unless-stopped
+    ports:
+      # Map host port 80 (or 3000) to container port 3000
+      - '3000:3000'
+    networks:
+      - nest_network
+    depends_on:
+      - nest_nats_server # Depends on NATS being available
+    env_file:
+      - .env # Load variables from .env file on the server
+    environment:
+      # Override specific vars if needed, or rely solely on .env
+      - API_GATEWAY_PORT=3000 # Port *inside* the container
+      - NATS_URL=nats://nest_nats_server:4222 # Use service name 'nats' for inter-container communication
+
+  todo-service:
+    # Image name will be set during build/tag in CI/CD, e.g., my-org/todo-service:latest
+    # For local testing before CI/CD: build: { context: ., dockerfile: apps/todo-service/Dockerfile }
+    image: nest-todo-service:latest # Placeholder, will be built/tagged in Actions
+    container_name: nest_todo_service
+    restart: unless-stopped
+    networks:
+      - nest_network
+    depends_on:
+      - nest_postgres_db # Depends on database
+      - nest_nats_server # Depends on NATS
+    env_file:
+      - .env # Load variables from .env file on the server
+    environment:
+      # Use service name 'postgres' and 'nats' for inter-container communication
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@nest_postgres_db:5432/${POSTGRES_DB}?schema=public
+      - NATS_URL=nats://nest_nats_server:4222
+
+  # --- Infrastructure Services ---
+  nest_postgres_db:
+    image: postgres:16-alpine
+    container_name: nest_postgres_db
+    restart: unless-stopped
+    networks:
+      - nest_network
+    ports:
+      # Optional: Expose Postgres port externally if needed for direct access/debug
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    env_file:
+      - .env # Load POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB
+
+  nest_nats_server:
+    image: nats:latest-alpine
+    container_name: nest_nats_server
+    restart: unless-stopped
+    networks:
+      - nest_network
+    ports:
+      # NATS client port
+      - '4222:4222'
+      # Optional: NATS monitoring port
+      - '8222:8222'
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  nest_network:
+    driver: bridge

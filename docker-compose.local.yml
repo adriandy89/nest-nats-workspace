@@ -1,0 +1,49 @@
+services:
+  api-gateway:
+    container_name: nest_local_gateway_prod
+    build:
+      dockerfile: ./apps/api-gateway/Dockerfile
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    depends_on:
+      - nats
+    env_file:
+      - .env.local # Carga variables desde un archivo .env local
+    # environment:
+    #   # Define el puerto DENTRO del contenedor
+    #   - API_GATEWAY_PORT=3000
+    #   # Comunícate con NATS usando el nombre del servicio
+    #   - NATS_URL=nats://nats:4222
+
+  todo-service:
+    container_name: nest_local_todo_prod
+    build:
+      dockerfile: ./apps/todo-service/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - nats
+    env_file:
+      - .env.local # Carga variables desde un archivo .env local
+
+  postgres:
+    image: postgres:16
+    container_name: postgres_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: todos_db
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  nats:
+    image: nats:latest
+    container_name: nats_server
+    ports:
+      - '4222:4222' # Puerto estándar de cliente NATS
+      - '8222:8222' # Puerto HTTP para monitoreo (opcional)
+    restart: unless-stopped

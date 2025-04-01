@@ -1,0 +1,154 @@
+# .github/workflows/ci-cd.yml
+name: NestJS Monorepo CI/CD
+
+on:
+  push:
+    branches:
+      - master # Trigger deployment on push to master
+      - develop # Trigger CI on push to develop
+  pull_request:
+    branches:
+      - master # Trigger CI on PRs targeting master
+      - develop # Trigger CI on PRs targeting develop
+
+jobs:
+  # ==================
+  # == CI Pipeline ===
+  # ==================
+  test-and-build:
+    name: Test & Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js v20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci # Use clean install for CI
+
+      - name: Run Linter Check
+        run: npm run lint
+
+      # Optional: Add formatting check if desired
+      # - name: Check Formatting
+      #   run: npm run format -- --check
+      - name: Run Tests
+        run: npm run test
+        # Note: If tests require DB/NATS, you might need to start them here using Docker
+        # Or mock dependencies effectively
+
+      - name: Build Applications
+        run: npm run build # Builds all apps and libs
+
+  # =====================
+  # == CD Pipeline ======
+  # =====================
+  deploy-to-vps:
+    name: Deploy to VPS
+    runs-on: ubuntu-latest
+    needs: test-and-build # Run only if test-and-build succeeds
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master' # Deploy only on push to master
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # --- Docker Build Setup ---
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # --- Build and Save Docker Images ---
+      # Login to a registry here if you prefer (e.g., GHCR)
+      # uses: docker/login-action@v3
+      # with:
+      #   registry: ghcr.io
+      #   username: ${{ github.actor }}
+      #   password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Save api-gateway Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./apps/api-gateway/Dockerfile
+          platforms: linux/amd64 # Specify target platform
+          push: false # Don't push to registry, just build
+          tags: nest-api-gateway:latest # Use the same tag as in docker-compose.deploy.yml
+          outputs: type=docker,dest=/tmp/api-gateway.tar # Save as tar file
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and Save todo-service Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./apps/todo-service/Dockerfile
+          platforms: linux/amd64
+          push: false
+          tags: nest-todo-service:latest
+          outputs: type=docker,dest=/tmp/todo-service.tar
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # --- Deploy to Server via SSH ---
+      - name: Prepare Server .env File
+        run: echo "${{ secrets.SERVER_ENV_FILE }}" > /tmp/server.env
+
+      - name: Deploy to VPS using SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_SSH_HOST }}
+          port: ${{ secrets.VPS_SSH_PORT }}
+          username: ${{ secrets.VPS_SSH_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            # Define deployment directory on the server
+            DEPLOY_DIR=/home/${{ secrets.VPS_SSH_USER }}/app/nest-microservices
+            # Create directory if it doesn't exist
+            mkdir -p $DEPLOY_DIR
+            cd $DEPLOY_DIR
+
+            # --- SCP files securely (executed via ssh-action context) ---
+            # Copy built image tarballs
+            scp -o StrictHostKeyChecking=no -P ${{ secrets.VPS_SSH_PORT }} /tmp/api-gateway.tar ${{ secrets.VPS_SSH_USER }}@${{ secrets.VPS_SSH_HOST }}:$DEPLOY_DIR/api-gateway.tar
+            scp -o StrictHostKeyChecking=no -P ${{ secrets.VPS_SSH_PORT }} /tmp/todo-service.tar ${{ secrets.VPS_SSH_USER }}@${{ secrets.VPS_SSH_HOST }}:$DEPLOY_DIR/todo-service.tar
+            # Copy deployment compose file
+            scp -o StrictHostKeyChecking=no -P ${{ secrets.VPS_SSH_PORT }} ${{ github.workspace }}/docker-compose.deploy.yml ${{ secrets.VPS_SSH_USER }}@${{ secrets.VPS_SSH_HOST }}:$DEPLOY_DIR/docker-compose.deploy.yml
+            # Copy the server .env file
+            scp -o StrictHostKeyChecking=no -P ${{ secrets.VPS_SSH_PORT }} /tmp/server.env ${{ secrets.VPS_SSH_USER }}@${{ secrets.VPS_SSH_HOST }}:$DEPLOY_DIR/.env
+
+            # --- Execute commands on the server ---
+            echo "Loading Docker images..."
+            docker load -i api-gateway.tar
+            docker load -i todo-service.tar
+
+            echo "Removing temporary tar files..."
+            rm api-gateway.tar todo-service.tar
+
+            echo "Starting deployment with Docker Compose..."
+            # Pull latest base images if needed (postgres, nats)
+            docker-compose -f docker-compose.deploy.yml pull postgres nats
+            # Stop and remove old containers, networks, volumes defined in the compose file IF NEEDED (use 'down -v' to remove volumes too, be careful with DB data)
+            # docker-compose -f docker-compose.deploy.yml down
+            # Start new containers based on the loaded images and compose file
+            docker-compose -f docker-compose.deploy.yml up -d --remove-orphans
+
+            echo "Running Prisma migrations..."
+            # Wait a few seconds for the DB to be ready (simple approach)
+            sleep 10
+            # Execute migrations inside the running todo-service container
+            docker-compose -f docker-compose.deploy.yml exec -T todo-service npx prisma migrate deploy
+
+            echo "Deployment completed!"
+
+            # Optional: Clean up unused docker images
+            echo "Cleaning up dangling Docker images..."
+            docker image prune -f

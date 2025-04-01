@@ -1,3 +1,4 @@
+import { CreateTodoDto, UpdateTodoDto } from '@app/dtos';
 import {
   Controller,
   Inject,
@@ -16,8 +17,6 @@ import {
 } from '@nestjs/common';
 import { ClientNats } from '@nestjs/microservices';
 import { ApiTags } from '@nestjs/swagger';
-import { CreateTodoDto } from '@app/dtos/create-todo.dto';
-import { UpdateTodoDto } from '@app/dtos/update-todo.dto';
 import { firstValueFrom, timeout, catchError, throwError } from 'rxjs';
 
 @ApiTags('todos')

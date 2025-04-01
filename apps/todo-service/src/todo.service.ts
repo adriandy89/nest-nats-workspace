@@ -1,8 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@app/database';
 import { Todo } from '@prisma/client';
-import { CreateTodoDto } from '@app/dtos/create-todo.dto';
-import { UpdateTodoDto } from '@app/dtos/update-todo.dto';
+import { CreateTodoDto, UpdateTodoDto } from '@app/dtos';
 // import { RpcException } from '@nestjs/microservices';
 
 @Injectable()

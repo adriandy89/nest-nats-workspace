@@ -1,0 +1,25 @@
+# Ignorar node_modules (se instalarán en la imagen)
+node_modules
+
+# Ignorar directorios de compilación
+dist
+build
+
+# Ignorar archivos de logs
+*.log
+logs
+
+# Ignorar configuraciones de Docker Compose
+docker-compose*.yml
+
+# Ignorar archivos de Git
+.git
+.gitignore
+
+# Ignorar archivos temporales del sistema operativo
+.DS_Store
+Thumbs.db
+
+# Ignorar archivos de depuración
+*.swp
+*.swo

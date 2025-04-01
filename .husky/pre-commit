@@ -1,12 +1,1 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-
-print() {
-  echo "\n\033[0;35m$1\033[0m"
-}
-
-print 'Running lint'
-npm run lint
-
-print 'Running Jest Unit Tests'
-npm run test
+"npm run lint" && "npm run test"

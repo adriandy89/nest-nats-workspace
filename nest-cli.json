@@ -28,6 +28,15 @@
         "tsConfigPath": "libs/database/tsconfig.lib.json"
       }
     },
+    "dtos": {
+      "type": "library",
+      "root": "libs/dtos",
+      "entryFile": "index",
+      "sourceRoot": "libs/dtos/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/dtos/tsconfig.lib.json"
+      }
+    },
     "todo-service": {
       "type": "application",
       "root": "apps/todo-service",

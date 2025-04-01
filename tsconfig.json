@@ -25,10 +25,10 @@
         "libs/database/src/*"
       ],
       "@app/dtos": [
-        "libs/dtos"
+        "libs/dtos/src"
       ],
       "@app/dtos/*": [
-        "libs/dtos/*"
+        "libs/dtos/src/*"
       ]
     }
   }
