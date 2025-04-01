@@ -162,8 +162,12 @@ jobs:
             rm api-gateway.tar todo-service.tar
 
             echo "Starting deployment with Docker Compose..."
-            # Pull latest base images if needed
-            docker compose -f docker-compose.deploy.yml pull postgres nats
+            # Pull latest base images if needed - CORRECTED SERVICE NAMES
+            docker compose -f docker-compose.deploy.yml pull postgres_db nats
+
+            # Check docker-compose file syntax
+            echo "Validating docker-compose.deploy.yml..."
+            docker compose -f docker-compose.deploy.yml config
 
             # Start new containers based on the loaded images and compose file
             docker compose -f docker-compose.deploy.yml up -d --remove-orphans
@@ -172,11 +176,24 @@ jobs:
             sleep 15
 
             # Check if containers are running
+            echo "Listing running containers:"
             docker compose -f docker-compose.deploy.yml ps
 
-            echo "Running Prisma migrations..."
-            # Execute migrations inside the running todo-service container
-            docker compose -f docker-compose.deploy.yml exec -T todo-service npx prisma migrate deploy || { echo "Migration failed"; }
+            # Check specific service status
+            echo "Checking todo-service status:"
+            docker ps -a | grep todo-service
+
+            # Check logs for troubleshooting
+            echo "Showing todo-service logs:"
+            docker compose -f docker-compose.deploy.yml logs todo-service
+
+            # Only run migrations if todo-service is running
+            if docker compose -f docker-compose.deploy.yml ps | grep -q "todo-service.*running"; then
+              echo "Running Prisma migrations..."
+              docker compose -f docker-compose.deploy.yml exec -T todo-service npx prisma migrate deploy || { echo "Migration failed"; }
+            else
+              echo "ERROR: todo-service is not running, skipping migrations"
+            fi
 
             echo "Deployment completed!"
 
