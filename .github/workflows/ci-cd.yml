@@ -97,13 +97,45 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      # --- Deploy to Server via SSH ---
+      - name: Prepare Server .env File
+        run: echo "${{ secrets.SERVER_ENV_FILE }}" > /tmp/server.env
+
       # --- Debug Step to Verify Files ---
       - name: Debug /tmp/ directory
         run: ls -l /tmp/
 
-      # --- Deploy to Server via SSH ---
-      - name: Prepare Server .env File
-        run: echo "${{ secrets.SERVER_ENV_FILE }}" > /tmp/server.env
+      # Copy files to VPS using scp-action
+      - name: Copy Docker image - API Gateway
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.VPS_SSH_HOST }}
+          port: ${{ secrets.VPS_SSH_PORT }}
+          username: ${{ secrets.VPS_SSH_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: '/tmp/api-gateway.tar'
+          target: '/home/${{ secrets.VPS_SSH_USER }}/app/nest-microservices'
+
+      - name: Copy Docker image - Todo Service
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.VPS_SSH_HOST }}
+          port: ${{ secrets.VPS_SSH_PORT }}
+          username: ${{ secrets.VPS_SSH_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: '/tmp/todo-service.tar'
+          target: '/home/${{ secrets.VPS_SSH_USER }}/app/nest-microservices'
+
+      - name: Copy Deployment Files
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.VPS_SSH_HOST }}
+          port: ${{ secrets.VPS_SSH_PORT }}
+          username: ${{ secrets.VPS_SSH_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: 'docker-compose.deploy.yml,/tmp/server.env'
+          target: '/home/${{ secrets.VPS_SSH_USER }}/app/nest-microservices'
+          rm: false
 
       - name: Deploy to VPS using SSH
         uses: appleboy/ssh-action@v1.0.3
@@ -115,20 +147,13 @@ jobs:
           script: |
             # Define deployment directory on the server
             DEPLOY_DIR=/home/${{ secrets.VPS_SSH_USER }}/app/nest-microservices
-            # Create directory if it doesn't exist
-            mkdir -p $DEPLOY_DIR
             cd $DEPLOY_DIR
 
-            # --- SCP files securely (executed via ssh-action context) ---
-            # Copy built image tarballs
-            scp -o StrictHostKeyChecking=no -P ${{ secrets.VPS_SSH_PORT }} /tmp/api-gateway.tar ${{ secrets.VPS_SSH_USER }}@${{ secrets.VPS_SSH_HOST }}:$DEPLOY_DIR/api-gateway.tar
-            scp -o StrictHostKeyChecking=no -P ${{ secrets.VPS_SSH_PORT }} /tmp/todo-service.tar ${{ secrets.VPS_SSH_USER }}@${{ secrets.VPS_SSH_HOST }}:$DEPLOY_DIR/todo-service.tar
-            # Copy deployment compose file
-            scp -o StrictHostKeyChecking=no -P ${{ secrets.VPS_SSH_PORT }} ${{ github.workspace }}/docker-compose.deploy.yml ${{ secrets.VPS_SSH_USER }}@${{ secrets.VPS_SSH_HOST }}:$DEPLOY_DIR/docker-compose.deploy.yml
-            # Copy the server .env file
-            scp -o StrictHostKeyChecking=no -P ${{ secrets.VPS_SSH_PORT }} /tmp/server.env ${{ secrets.VPS_SSH_USER }}@${{ secrets.VPS_SSH_HOST }}:$DEPLOY_DIR/.env
+            # Rename .env file if needed
+            if [ -f server.env ]; then
+              mv server.env .env
+            fi
 
-            # --- Execute commands on the server ---
             echo "Loading Docker images..."
             docker load -i api-gateway.tar
             docker load -i todo-service.tar
@@ -139,19 +164,17 @@ jobs:
             echo "Starting deployment with Docker Compose..."
             # Pull latest base images if needed (postgres, nats)
             docker compose -f docker-compose.deploy.yml pull postgres nats
-            # Stop and remove old containers, networks, volumes defined in the compose file IF NEEDED (use 'down -v' to remove volumes too, be careful with DB data)
-            # docker compose -f docker-compose.deploy.yml down
             # Start new containers based on the loaded images and compose file
             docker compose -f docker-compose.deploy.yml up -d --remove-orphans
 
             echo "Running Prisma migrations..."
-            # Wait a few seconds for the DB to be ready (simple approach)
+            # Wait a few seconds for the DB to be ready
             sleep 10
             # Execute migrations inside the running todo-service container
             docker compose -f docker-compose.deploy.yml exec -T todo-service npx prisma migrate deploy
 
             echo "Deployment completed!"
 
-            # Optional: Clean up unused docker images
+            # Clean up unused docker images
             echo "Cleaning up dangling Docker images..."
             docker image prune -f
