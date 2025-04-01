@@ -97,6 +97,10 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      # --- Debug Step to Verify Files ---
+      - name: Debug /tmp/ directory
+        run: ls -l /tmp/
+
       # --- Deploy to Server via SSH ---
       - name: Prepare Server .env File
         run: echo "${{ secrets.SERVER_ENV_FILE }}" > /tmp/server.env
@@ -134,17 +138,17 @@ jobs:
 
             echo "Starting deployment with Docker Compose..."
             # Pull latest base images if needed (postgres, nats)
-            docker-compose -f docker-compose.deploy.yml pull postgres nats
+            docker compose -f docker-compose.deploy.yml pull postgres nats
             # Stop and remove old containers, networks, volumes defined in the compose file IF NEEDED (use 'down -v' to remove volumes too, be careful with DB data)
-            # docker-compose -f docker-compose.deploy.yml down
+            # docker compose -f docker-compose.deploy.yml down
             # Start new containers based on the loaded images and compose file
-            docker-compose -f docker-compose.deploy.yml up -d --remove-orphans
+            docker compose -f docker-compose.deploy.yml up -d --remove-orphans
 
             echo "Running Prisma migrations..."
             # Wait a few seconds for the DB to be ready (simple approach)
             sleep 10
             # Execute migrations inside the running todo-service container
-            docker-compose -f docker-compose.deploy.yml exec -T todo-service npx prisma migrate deploy
+            docker compose -f docker-compose.deploy.yml exec -T todo-service npx prisma migrate deploy
 
             echo "Deployment completed!"
 
