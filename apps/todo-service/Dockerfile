@@ -12,6 +12,7 @@ COPY nest-cli.json ./
 COPY tsconfig.json ./
 COPY tsconfig.spec.json ./
 COPY jest.config.js ./
+COPY .lintstagedrc ./
 
 RUN npm ci
 
