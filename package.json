@@ -1,6 +1,6 @@
 {
   "name": "nest-nats-workspace",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "",
   "author": "",
   "private": true,
@@ -13,7 +13,7 @@
     "start:prod": "node dist/apps/nest-nats-workspace/main",
     "format": "prettier --write \"apps/**/*.ts\" \"libs/**/*.ts\"",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
-    "test": "jest",
+    "test": "npx prisma generate --schema=./apps/todo-service/prisma/schema.prisma && jest",
     "prepare": "husky",
     "start:gateway:dev": "nest start api-gateway --watch",
     "start:todo:dev": "nest start todo-service --watch",
@@ -22,7 +22,7 @@
     "start:todo:prod": "node dist/apps/todo-service/main",
     "prisma:migrate:dev": "cd apps/todo-service && npx prisma migrate dev --schema=./prisma/schema.prisma",
     "prisma:migrate:deploy": "cd apps/todo-service && npx prisma migrate deploy --schema=./prisma/schema.prisma",
-    "prisma:generate": "cd apps/todo-service && npx prisma generate --schema=./prisma/schema.prisma",
+    "prisma:generate": "npx prisma generate --schema=./apps/todo-service/prisma/schema.prisma",
     "prisma:studio": "cd apps/todo-service && npx prisma studio --schema=./prisma/schema.prisma"
   },
   "dependencies": {
