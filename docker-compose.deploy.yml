@@ -1,6 +1,7 @@
 services:
   # Backend API Gateway
   api-gateway:
+    container_name: api-gateway
     image: nest-api-gateway:latest
     restart: always
     depends_on:
@@ -9,9 +10,12 @@ services:
       - '3000:3000'
     networks:
       - nest_network
+    env_file:
+      - .env # Load variables from .env file on the server
 
   # Todo Microservice
   todo-service:
+    container_name: todo-service
     image: nest-todo-service:latest
     restart: always
     depends_on:
@@ -19,9 +23,12 @@ services:
       - nats
     networks:
       - nest_network
+    env_file:
+      - .env # Load variables from .env file on the server
 
   # Database
   postgres_db: # This should match what you use in your pull command
+    container_name: postgres_db
     image: postgres:16-alpine
     restart: always
     environment:
@@ -35,6 +42,7 @@ services:
 
   # NATS Message Broker
   nats: # This should match what you use in your pull command
+    container_name: nats
     image: nats:latest # NOT 'nats:latest-alpine'
     restart: always
     ports:
