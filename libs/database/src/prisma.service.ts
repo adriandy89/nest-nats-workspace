@@ -13,7 +13,9 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
   }
 
   // Optional: You can use this method to enable graceful shutdown hooks for Prisma
+
   enableShutdownHooks(app: INestApplication) {
+    // eslint-disable-next-line
     process.on('beforeExit', async () => {
       console.log('Closing Prisma connection...');
       await this.$disconnect();

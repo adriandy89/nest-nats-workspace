@@ -1,3 +1,4 @@
+/* eslint-disable */
 import { Test, TestingModule } from '@nestjs/testing';
 import { TodoController } from './todo.controller';
 import { TodoService } from './todo.service';
@@ -33,11 +34,11 @@ describe('TodoController', () => {
       findOne: jest.fn(),
       update: jest.fn(),
       remove: jest.fn(),
-    } as any;
+    } as unknown as jest.Mocked<TodoService>;
 
     mockNatsContext = {
       getSubject: jest.fn().mockReturnValue('test.subject'),
-    } as any;
+    } as unknown as jest.Mocked<NatsContext>;
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [TodoController],

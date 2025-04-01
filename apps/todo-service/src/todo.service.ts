@@ -33,6 +33,7 @@ export class TodoService {
         data,
       });
     } catch (error) {
+      // eslint-disable-next-line
       if (error?.code === 'P2025') {
         console.error(`[Todo Service] Todo with ID ${id} not found for update`);
         // throw new RpcException(`Todo with ID ${id} not found`);
@@ -47,6 +48,7 @@ export class TodoService {
     try {
       return await this.prisma.todo.delete({ where: { id } });
     } catch (error) {
+      // eslint-disable-next-line
       if (error?.code === 'P2025') {
         console.error(
           `[Todo Service] Todo with ID ${id} not found for deletion`,

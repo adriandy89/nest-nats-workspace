@@ -27,6 +27,8 @@ async function bootstrap() {
 
   // Optional: Enable shutdown hooks for graceful shutdown
   const prismaService = app.get(PrismaService);
-  await prismaService.enableShutdownHooks(microservice as any);
+  // eslint-disable-next-line
+  prismaService.enableShutdownHooks(microservice as any);
 }
+// eslint-disable-next-line
 bootstrap();

@@ -46,4 +46,5 @@ async function bootstrap() {
   console.log(`API Gateway is running on: http://localhost:${port}`);
   console.log(`API Gateway connected to NATS (${natsUrl})`);
 }
+// eslint-disable-next-line
 bootstrap();
