@@ -14,6 +14,7 @@ COPY nest-cli.json ./
 COPY tsconfig.json ./
 COPY tsconfig.spec.json ./
 COPY jest.config.js ./
+COPY eslint.config.mjs ./
 COPY .lintstagedrc ./
 
 # Use npm ci for clean installs in CI/CD
