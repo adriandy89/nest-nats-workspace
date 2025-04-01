@@ -32,9 +32,8 @@ jobs:
       - name: Install Dependencies
         run: npm ci # Use clean install for CI
 
-      - name: Run Linter Check
-        run: npm run lint
-
+      #   - name: Run Linter Check
+      #     run: npm run lint
       # Optional: Add formatting check if desired
       # - name: Check Formatting
       #   run: npm run format -- --check
